@@ -1,8 +1,8 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { AxiosError } from 'axios'
+import { asyncThunkCreator, buildCreateSlice } from '@reduxjs/toolkit'
 
-import { AuthorizationStateType } from './auth.types'
-import { fetchLogin } from './asyncActions'
-import { RootState } from '../../../store'
+import { AuthorizationStateType, LoginRequestType } from './auth.types'
+import { AuthAPI } from '../api'
 
 const initialState: AuthorizationStateType = {
   isLoading: false,
@@ -10,23 +10,51 @@ const initialState: AuthorizationStateType = {
   error: '',
 }
 
+const createSlice = buildCreateSlice({
+  creators: { asyncThunk: asyncThunkCreator },
+})
+
 export const authorization = createSlice({
   name: 'authorization',
   initialState,
-  reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchLogin.pending, pending)
-      .addCase(fetchLogin.fulfilled, (state, action) => {
-        state.access_token = action.payload.access_token
-        state.isLoading = false
-      })
-      .addCase(fetchLogin.rejected, (state, action) => {
-        state.isLoading = false
-        state.access_token = ''
-        state.error = (action.payload as string) ?? ''
-      })
+  selectors: {
+    getToken: (state): string => state.access_token,
+    getLoading: (state): boolean => state.isLoading,
+    getError: (state): string => state.error,
   },
+  reducers: (create) => ({
+    fetchLogin: create.asyncThunk(
+      async function (obj: LoginRequestType, { rejectWithValue }) {
+        try {
+          return await AuthAPI.login(obj.email, obj.password)
+        } catch (error: unknown) {
+          if (error instanceof AxiosError) {
+            return rejectWithValue(error.response?.data.message)
+          } else {
+            return rejectWithValue(error)
+          }
+        }
+      },
+      {
+        pending,
+        fulfilled: (state, action) => {
+          state.access_token = action.payload.access_token
+        },
+        rejected: (state, action) => {
+          state.access_token = ''
+          state.error = (action.payload as string) ?? ''
+        },
+        settled: (state) => {
+          state.isLoading = false
+        },
+      },
+    ),
+    logout: create.reducer((state) => {
+      state.isLoading = false
+      state.access_token = ''
+      state.error = ''
+    }),
+  }),
 })
 
 function pending(state: AuthorizationStateType) {
@@ -35,8 +63,6 @@ function pending(state: AuthorizationStateType) {
   state.error = ''
 }
 
-export const getToken = (state: RootState): string => state.authorization.access_token
-export const getLoading = (state: RootState): boolean => state.authorization.isLoading
-export const getError = (state: RootState): string => state.authorization.error
-
+export const { fetchLogin, logout } = authorization.actions
+export const { getToken, getLoading, getError } = authorization.selectors
 export default authorization.reducer

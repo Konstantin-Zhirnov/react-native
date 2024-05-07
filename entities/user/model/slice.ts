@@ -1,8 +1,8 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { asyncThunkCreator, buildCreateSlice } from '@reduxjs/toolkit'
 
-import { fetchProfile, fetchUpdatePhoto } from './asyncActions'
-import { RootState } from '../../../store'
 import { User, UserStateType } from './user.types'
+import { ProfileAPI } from '../api'
+import { AxiosError } from 'axios'
 
 const initialState: UserStateType = {
   profile: null,
@@ -10,31 +10,67 @@ const initialState: UserStateType = {
   error: '',
 }
 
+const createSlice = buildCreateSlice({
+  creators: { asyncThunk: asyncThunkCreator },
+})
+
 export const user = createSlice({
   name: 'user',
   initialState,
-  reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchProfile.pending, pending)
-      .addCase(fetchProfile.fulfilled, (state, action) => {
-        state.profile = action.payload
-        state.isLoading = false
-      })
-      .addCase(fetchProfile.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = (action.payload as string) ?? ''
-      })
-
-      .addCase(fetchUpdatePhoto.pending, pending)
-      .addCase(fetchUpdatePhoto.fulfilled, (state, action) => {
-        state.profile = action.payload
-        state.isLoading = false
-      })
-      .addCase(fetchUpdatePhoto.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = (action.payload as string) ?? ''
-      })
+  reducers: (create) => ({
+    fetchProfile: create.asyncThunk(
+      async function (access_token: string, { rejectWithValue }) {
+        try {
+          return await ProfileAPI.getProfile(access_token)
+        } catch (error: unknown) {
+          if (error instanceof AxiosError) {
+            return rejectWithValue(error.response?.data.message)
+          } else {
+            return rejectWithValue(error)
+          }
+        }
+      },
+      {
+        pending,
+        fulfilled: (state, action) => {
+          state.profile = action.payload
+        },
+        rejected: (state, action) => {
+          state.error = (action.payload as string) ?? ''
+        },
+        settled: (state) => {
+          state.isLoading = false
+        },
+      },
+    ),
+    fetchUpdatePhoto: create.asyncThunk(
+      async function (obj: { access_token: string; photo: string }, { rejectWithValue }) {
+        try {
+          return await ProfileAPI.updatePhoto(obj)
+        } catch (error: unknown) {
+          if (error instanceof AxiosError) {
+            return rejectWithValue(error.response?.data.message)
+          } else {
+            return rejectWithValue(error)
+          }
+        }
+      },
+      {
+        pending,
+        fulfilled: (state, action) => {
+          state.profile = action.payload
+        },
+        rejected: (state, action) => {
+          state.error = (action.payload as string) ?? ''
+        },
+        settled: (state) => {
+          state.isLoading = false
+        },
+      },
+    ),
+  }),
+  selectors: {
+    getProfile: (state): User | null => state.profile,
   },
 })
 
@@ -44,7 +80,7 @@ function pending(state: UserStateType) {
   state.error = ''
 }
 
-export const getProfile = (state: RootState): User | null => state.user.profile
-// export const getLoading = (state: RootState): boolean => state.courses.isLoading
+export const { fetchProfile, fetchUpdatePhoto } = user.actions
+export const { getProfile } = user.selectors
 
 export default user.reducer

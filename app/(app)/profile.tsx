@@ -3,8 +3,7 @@ import { StyleSheet, View } from 'react-native'
 
 import { useAppDispatch, useAppSelector } from '../../store'
 
-import { fetchUpdatePhoto } from '../../entities/user/model/asyncActions'
-import { getProfile } from '../../entities/user/model/slice'
+import { getProfile, fetchUpdatePhoto } from '../../entities/user/model/slice'
 import { getToken } from '../../entities/auth/model/slice'
 import { Avatar } from '../../entities/user/ui/Avatar'
 

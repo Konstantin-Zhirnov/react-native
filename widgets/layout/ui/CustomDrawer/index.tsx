@@ -1,35 +1,41 @@
 import React from 'react'
 import { Image, StyleSheet, View } from 'react-native'
 import { DrawerContentComponentProps, DrawerContentScrollView } from '@react-navigation/drawer'
-import { useAtom, useSetAtom } from 'jotai'
+
+import { useAppDispatch, useAppSelector } from '../../../../store'
 
 import { CloseDrawer } from '../../../../features/layout/ui/CloseDrawer'
+
+import { fetchProfile, getProfile } from '../../../../entities/user/model/slice'
+import { MenuItem } from '../../../../entities/layout/ui/MenuItem'
+import { getToken, logout } from '../../../../entities/auth/model/slice'
 
 import { Colors } from '../../../../shared/tokens'
 import { CustomLink } from '../../../../shared/CustomLink'
 
-import { loadProfileAtom } from '../../../../entities/user/model/user.state'
-import { logoutAtom } from '../../../../entities/auth/model/auth.state'
-import { UserMenu } from '../../../user/ui/UserMenu'
 import CoursesIcon from '../../../../assets/menu/courses'
 import ProfileIcon from '../../../../assets/menu/profile'
-import { MenuItem } from '../../../../entities/layout/ui/MenuItem'
+
+import { UserMenu } from '../../../user/ui/UserMenu'
 
 const MENU = [
   { text: 'Courses', icon: <CoursesIcon />, path: 'index' },
   { text: 'Profile', icon: <ProfileIcon />, path: 'profile' },
 ]
 const CustomDrawer = (props: DrawerContentComponentProps) => {
-  const logout = useSetAtom(logoutAtom)
-  const [{ profile }, loadProfile] = useAtom(loadProfileAtom)
+  const dispatch = useAppDispatch()
+  const access_token = useAppSelector(getToken)
+  const profile = useAppSelector(getProfile)
 
   const handleClick = () => {
-    logout()
+    dispatch(logout())
   }
 
   React.useEffect(() => {
-    loadProfile()
-  }, [])
+    if (access_token) {
+      dispatch(fetchProfile(access_token))
+    }
+  }, [access_token])
 
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.scrollView}>

@@ -5,8 +5,7 @@ import { Dimensions, Image, KeyboardAvoidingView, Platform, StyleSheet, View } f
 
 import { useAppDispatch, useAppSelector } from '../store'
 
-import { getError, getLoading, getToken } from '../entities/auth/model/slice'
-import { fetchLogin } from '../entities/auth/model/asyncActions'
+import { getError, getLoading, getToken, fetchLogin } from '../entities/auth/model/slice'
 
 import { ErrorNotification } from '../shared/ErrorNotification'
 import { useScreenOrientation } from '../shared/hooks'

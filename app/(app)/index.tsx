@@ -6,8 +6,7 @@ import { useAppDispatch, useAppSelector } from '../../store'
 
 import Card from '../../widgets/course/ui/Card'
 
-import { fetchCourses } from '../../entities/course/model/asyncActions'
-import { getCourses, getLoading } from '../../entities/course/model/slice'
+import { getCourses, getLoading, fetchCourses } from '../../entities/course/model/slice'
 import { getToken } from '../../entities/auth/model/slice'
 import { StudentCourseDescription } from '../../entities/course/model/course.types'
 

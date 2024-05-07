@@ -1,8 +1,8 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { AxiosError } from 'axios'
+import { asyncThunkCreator, buildCreateSlice } from '@reduxjs/toolkit'
 
-import { fetchCourses } from './asyncActions'
 import { CourseStateType, StudentCourseDescription } from './course.types'
-import { RootState } from '../../../store'
+import { CoursesAPI } from '../api'
 
 const initialState: CourseStateType = {
   courses: [],
@@ -10,22 +10,44 @@ const initialState: CourseStateType = {
   error: null,
 }
 
+const createSlice = buildCreateSlice({
+  creators: { asyncThunk: asyncThunkCreator },
+})
+
 export const courses = createSlice({
   name: 'courses',
   initialState,
-  reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchCourses.pending, pending)
-      .addCase(fetchCourses.fulfilled, (state, action) => {
-        state.courses = action.payload
-        state.isLoading = false
-      })
-      .addCase(fetchCourses.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = (action.payload as string) ?? ''
-      })
+  selectors: {
+    getCourses: (state): StudentCourseDescription[] => state.courses,
+    getLoading: (state): boolean => state.isLoading,
   },
+  reducers: (create) => ({
+    fetchCourses: create.asyncThunk(
+      async function (access_token: string, { rejectWithValue }) {
+        try {
+          return await CoursesAPI.getCourses(access_token)
+        } catch (error: unknown) {
+          if (error instanceof AxiosError) {
+            return rejectWithValue(error.response?.data.message)
+          } else {
+            return rejectWithValue(error)
+          }
+        }
+      },
+      {
+        pending,
+        fulfilled: (state, action) => {
+          state.courses = action.payload
+        },
+        rejected: (state, action) => {
+          state.error = (action.payload as string) ?? ''
+        },
+        settled: (state) => {
+          state.isLoading = false
+        },
+      },
+    ),
+  }),
 })
 
 function pending(state: CourseStateType) {
@@ -34,7 +56,7 @@ function pending(state: CourseStateType) {
   state.error = null
 }
 
-export const getCourses = (state: RootState): StudentCourseDescription[] => state.courses.courses
-export const getLoading = (state: RootState): boolean => state.courses.isLoading
+export const { fetchCourses } = courses.actions
+export const { getCourses, getLoading } = courses.selectors
 
 export default courses.reducer
